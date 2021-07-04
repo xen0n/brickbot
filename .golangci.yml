@@ -1,0 +1,15 @@
+run:
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    - goheader
+  presets:
+    - bugs
+    - unused
+
+linters-settings:
+  goheader:
+    template: |-
+      SPDX-License-Identifier: GPL-3.0-or-later
