@@ -5,6 +5,13 @@ linters:
   disable-all: true
   enable:
     - goheader
+    - goimports
+    - gosec
+    - gosimple
+    - lll
+    - nakedret
+    - revive
+    - stylecheck
   presets:
     - bugs
     - unused
@@ -13,3 +20,14 @@ linters-settings:
   goheader:
     template: |-
       SPDX-License-Identifier: GPL-3.0-or-later
+  goimports:
+    local-prefixes: github.com/xen0n/brickbot
+  gosimple:
+    go: '1.16'
+  lll:
+    line-length: 120
+    tab-width: 4
+  nakedret:
+    max-func-lines: 10
+  stylecheck:
+    go: '1.16'
