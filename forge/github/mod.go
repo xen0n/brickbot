@@ -3,14 +3,26 @@
 package github
 
 import (
-	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/go-playground/webhooks/v6/github"
 
 	"github.com/xen0n/brickbot/forge"
 )
+
+type githubEvent struct {
+	inner interface{}
+}
+
+var _ forge.IEvent = (*githubEvent)(nil)
+
+// Raw returns the raw payload from forges.
+//
+// TODO: This is for debugging purposes, and is very likely to be removed
+// before initial release.
+func (e *githubEvent) Raw() interface{} {
+	return e.inner
+}
 
 type githubForge struct {
 	hook *github.Webhook
@@ -33,7 +45,7 @@ func New(secret string) (forge.IForgeHook, error) {
 }
 
 // HookRequest hooks an incoming webhook request to trigger actions.
-func (f *githubForge) HookRequest(req *http.Request) {
+func (f *githubForge) HookRequest(req *http.Request) (*forge.HookResult, error) {
 	payload, err := f.hook.Parse(
 		req,
 		// XXX This is everything for now, I don't know exactly what GitHub is
@@ -80,12 +92,13 @@ func (f *githubForge) HookRequest(req *http.Request) {
 		github.WatchEvent,
 	)
 	if err != nil {
-		// TODO: what to do?
-		fmt.Printf("XXX Error parsing GitHub event: %s\n", err.Error())
-		return
+		return nil, err
 	}
 
-	// DEBUG
-	ty := reflect.TypeOf(payload)
-	fmt.Printf("event %s\nrepr  %+v\n\n", ty.Name(), payload)
+	return &forge.HookResult{
+		IsInteresting: true,
+		Event: &githubEvent{
+			inner: payload,
+		},
+	}, nil
 }
