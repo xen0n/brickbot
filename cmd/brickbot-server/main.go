@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -39,6 +41,9 @@ func runServer(conf *config) error {
 	mux.HandleFunc("/healthz", dummyHealthzHandler)
 	mux.HandleFunc("/livez", dummyHealthzHandler)
 	mux.HandleFunc("/readyz", dummyHealthzHandler)
+
+	// Metrics endpoints.
+	mux.Handle("/metrics", promhttp.Handler())
 
 	return http.ListenAndServe(conf.Server.ListenAddr, mux)
 }
