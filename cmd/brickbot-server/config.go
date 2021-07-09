@@ -9,6 +9,7 @@ import (
 type config struct {
 	Server serverConfig
 	GitHub githubConfig `toml:"github"`
+	GitLab gitlabConfig `toml:"gitlab"`
 	WeCom  wecomConfig  `toml:"wecom"`
 }
 
@@ -20,6 +21,11 @@ type serverConfig struct {
 }
 
 type githubConfig struct {
+	Enabled bool
+	Secret  string
+}
+
+type gitlabConfig struct {
 	Enabled bool
 	Secret  string
 }

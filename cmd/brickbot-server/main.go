@@ -12,6 +12,7 @@ import (
 
 	"github.com/xen0n/brickbot/forge"
 	forgeGH "github.com/xen0n/brickbot/forge/github"
+	forgeGL "github.com/xen0n/brickbot/forge/gitlab"
 	"github.com/xen0n/brickbot/im"
 	imWeCom "github.com/xen0n/brickbot/im/wecom"
 )
@@ -75,6 +76,15 @@ func runServer(conf *config) error {
 			}
 
 			mux.HandleFunc("/github", makeForgeHookHandler(fh, wecom))
+		}
+
+		if conf.GitLab.Enabled {
+			fh, err := forgeGL.New(conf.GitLab.Secret)
+			if err != nil {
+				panic(err)
+			}
+
+			mux.HandleFunc("/gitlab", makeForgeHookHandler(fh, wecom))
 		}
 	}
 
