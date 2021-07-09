@@ -9,6 +9,7 @@ import (
 type config struct {
 	Server serverConfig
 	GitHub githubConfig `toml:"github"`
+	WeCom  wecomConfig  `toml:"wecom"`
 }
 
 type serverConfig struct {
@@ -21,6 +22,14 @@ type serverConfig struct {
 type githubConfig struct {
 	Enabled bool
 	Secret  string
+}
+
+type wecomConfig struct {
+	Enabled    bool
+	CorpID     string `toml:"corpid"`
+	CorpSecret string `toml:"corpsecret"`
+	AgentID    int64  `toml:"agentid"`
+	ChatID     string `toml:"chatid"`
 }
 
 func parseConfig(path string) (config, error) {
