@@ -3,3 +3,9 @@
 #
 # The format is just what net.Listen accepts for TCP.
 listen_addr = "localhost:23333"
+
+[github]
+# Whether to enable the GitHub webhook endpoint.
+enabled = true
+# Secret to use for signature verification.
+secret = "Sup3rS3cr3tStr1ng"

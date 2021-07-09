@@ -8,6 +8,7 @@ import (
 
 type config struct {
 	Server serverConfig
+	GitHub githubConfig `toml:"github"`
 }
 
 type serverConfig struct {
@@ -15,6 +16,11 @@ type serverConfig struct {
 	//
 	// The format is just what net.Listen accepts for TCP.
 	ListenAddr string `toml:"listen_addr"`
+}
+
+type githubConfig struct {
+	Enabled bool
+	Secret  string
 }
 
 func parseConfig(path string) (config, error) {
