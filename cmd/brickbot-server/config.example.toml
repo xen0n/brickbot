@@ -10,6 +10,12 @@ enabled = true
 # Secret to use for signature verification.
 secret = "Sup3rS3cr3tStr1ng"
 
+[gitlab]
+# Whether to enable the GitLab webhook endpoint.
+enabled = true
+# Secret to use for signature verification.
+secret = "Sup3rS3cr3tStr1ng"
+
 [wecom]
 # Whether to enable 企业微信 (aka WeCom, WeChat Work, etc.) integration.
 enabled = true
