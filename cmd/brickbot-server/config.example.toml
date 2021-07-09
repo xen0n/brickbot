@@ -1,0 +1,5 @@
+[server]
+# The address brickbot-server listens at.
+#
+# The format is just what net.Listen accepts for TCP.
+listen_addr = "localhost:23333"
