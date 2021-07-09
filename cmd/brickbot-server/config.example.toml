@@ -1,0 +1,25 @@
+[server]
+# The address brickbot-server listens at.
+#
+# The format is just what net.Listen accepts for TCP.
+listen_addr = "localhost:23333"
+
+[github]
+# Whether to enable the GitHub webhook endpoint.
+enabled = true
+# Secret to use for signature verification.
+secret = "Sup3rS3cr3tStr1ng"
+
+[wecom]
+# Whether to enable 企业微信 (aka WeCom, WeChat Work, etc.) integration.
+enabled = true
+# Your organization's CorpID.
+corpid = "foofoofoofoo"
+# Your organization's CorpSecret.
+corpsecret = "barbarbarbar"
+# Your bot's AgentID.
+agentid = 100001
+# ChatID for your team to receive notifications.
+#
+# NOTE: You need to create the appchat yourself.
+chatid = "devteambrickbot"
