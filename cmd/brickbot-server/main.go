@@ -12,6 +12,8 @@ import (
 
 	"github.com/xen0n/brickbot/forge"
 	forgeGH "github.com/xen0n/brickbot/forge/github"
+	"github.com/xen0n/brickbot/im"
+	imWeCom "github.com/xen0n/brickbot/im/wecom"
 )
 
 func main() {
@@ -38,6 +40,22 @@ func main() {
 }
 
 func runServer(conf *config) error {
+	// IM integration.
+	var wecom im.IProvider
+	if conf.WeCom.Enabled {
+		p, err := imWeCom.New(
+			conf.WeCom.CorpID,
+			conf.WeCom.CorpSecret,
+			conf.WeCom.AgentID,
+			conf.WeCom.ChatID,
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		wecom = p
+	}
+
 	mux := http.NewServeMux()
 
 	// Health check endpoints.
@@ -56,7 +74,7 @@ func runServer(conf *config) error {
 				panic(err)
 			}
 
-			mux.HandleFunc("/github", makeForgeHookHandler(fh))
+			mux.HandleFunc("/github", makeForgeHookHandler(fh, wecom))
 		}
 	}
 
@@ -68,10 +86,31 @@ func dummyHealthzHandler(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
-func makeForgeHookHandler(fh forge.IForgeHook) http.HandlerFunc {
+func makeForgeHookHandler(
+	fh forge.IForgeHook,
+	imProvider im.IProvider,
+) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		// Invoke the forge-specific logic.
-		fh.HookRequest(r)
+		hookResult, err := fh.HookRequest(r)
+		if err != nil {
+			// TODO: is returning failure the best thing to do in this case?
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if hookResult.IsInteresting {
+			// Only process interesting events.
+			// For now, directly report to IM for debugging.
+			if imProvider != nil {
+				err := imProvider.SendTeamMessage(hookResult.Event)
+				if err != nil {
+					// This error is not related to webhook request itself, so
+					// don't return failure status code.
+					fmt.Printf("XXX failed to send team message: %s\n", err.Error())
+				}
+			}
+		}
 
 		// Most webhooks ignore the response body, but might retry in case of
 		// failed deliveries, so send 204.
