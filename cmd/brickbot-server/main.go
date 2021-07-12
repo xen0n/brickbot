@@ -4,11 +4,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 
 	"github.com/xen0n/brickbot/forge"
 	forgeGH "github.com/xen0n/brickbot/forge/github"
@@ -18,6 +20,9 @@ import (
 )
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
 	var configPath string
 	flag.StringVar(&configPath, "c", "", "path to config file")
 	flag.Parse()
@@ -27,16 +32,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("configPath", configPath)
+	log.Debug().Str("path", configPath).Msg("using this config")
 
 	conf, err := parseConfig(configPath)
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("failed to parse config file")
+		os.Exit(1)
 	}
 
 	err = runServer(&conf)
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("failed to serve")
+		os.Exit(1)
 	}
 }
 
@@ -51,7 +58,8 @@ func runServer(conf *config) error {
 			conf.WeCom.ChatID,
 		)
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("failed to initialize WeCom integration")
+			return err
 		}
 
 		wecom = p
@@ -72,7 +80,8 @@ func runServer(conf *config) error {
 		if conf.GitHub.Enabled {
 			fh, err := forgeGH.New(conf.GitHub.Secret)
 			if err != nil {
-				panic(err)
+				log.Error().Err(err).Msg("failed to initialize GitHub integration")
+				return err
 			}
 
 			mux.HandleFunc("/github", makeForgeHookHandler(fh, wecom))
@@ -81,7 +90,8 @@ func runServer(conf *config) error {
 		if conf.GitLab.Enabled {
 			fh, err := forgeGL.New(conf.GitLab.Secret)
 			if err != nil {
-				panic(err)
+				log.Error().Err(err).Msg("failed to initialize GitLab integration")
+				return err
 			}
 
 			mux.HandleFunc("/gitlab", makeForgeHookHandler(fh, wecom))
@@ -104,6 +114,8 @@ func makeForgeHookHandler(
 		// Invoke the forge-specific logic.
 		hookResult, err := fh.HookRequest(r)
 		if err != nil {
+			log.Error().Err(err).Msg("failed to process incoming webhook event")
+
 			// TODO: is returning failure the best thing to do in this case?
 			rw.WriteHeader(http.StatusBadRequest)
 			return
@@ -117,7 +129,7 @@ func makeForgeHookHandler(
 				if err != nil {
 					// This error is not related to webhook request itself, so
 					// don't return failure status code.
-					fmt.Printf("XXX failed to send team message: %s\n", err.Error())
+					log.Warn().Err(err).Msg("failed to send team message")
 				}
 			}
 		}
