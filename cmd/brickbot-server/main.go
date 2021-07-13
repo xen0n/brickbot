@@ -18,6 +18,7 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 
 	"github.com/xen0n/brickbot/bot"
+	"github.com/xen0n/brickbot/bot/v1alpha1"
 	"github.com/xen0n/brickbot/forge"
 	forgeGH "github.com/xen0n/brickbot/forge/github"
 	forgeGL "github.com/xen0n/brickbot/forge/gitlab"
@@ -64,7 +65,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	srv, err := makeServer(&conf)
+	srv, err := makeServer(&conf, bot)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize server")
 		os.Exit(1)
@@ -109,7 +110,7 @@ func main() {
 	os.Exit(exitcode)
 }
 
-func makeServer(conf *config) (*http.Server, error) {
+func makeServer(conf *config, bot v1alpha1.IPlugin) (*http.Server, error) {
 	// IM integration.
 	var wecom im.IProvider
 	if conf.WeCom.Enabled {
@@ -145,7 +146,7 @@ func makeServer(conf *config) (*http.Server, error) {
 				return nil, err
 			}
 
-			mux.HandleFunc("/github", makeForgeHookHandler(fh, wecom))
+			mux.HandleFunc("/github", makeForgeHookHandler(fh, bot, wecom))
 		}
 
 		if conf.GitLab.Enabled {
@@ -155,7 +156,7 @@ func makeServer(conf *config) (*http.Server, error) {
 				return nil, err
 			}
 
-			mux.HandleFunc("/gitlab", makeForgeHookHandler(fh, wecom))
+			mux.HandleFunc("/gitlab", makeForgeHookHandler(fh, bot, wecom))
 		}
 	}
 
@@ -172,6 +173,7 @@ func dummyHealthzHandler(rw http.ResponseWriter, r *http.Request) {
 
 func makeForgeHookHandler(
 	fh forge.IForgeHook,
+	bot v1alpha1.IPlugin,
 	imProvider im.IProvider,
 ) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -193,7 +195,13 @@ func makeForgeHookHandler(
 
 		log.Debug().Str("event", fmt.Sprintf("%+v", botEvent)).Msg("parsed incoming event")
 
-		// TODO: bot logic
+		// Call bot plugin asynchronously.
+		go func(e *v1alpha1.Event) {
+			err := bot.ProcessEvent(e, imProvider)
+			if err != nil {
+				log.Error().Err(err).Msg("bot returned failure")
+			}
+		}(botEvent)
 
 		// Most webhooks ignore the response body, but might retry in case of
 		// failed deliveries, so send 204.
