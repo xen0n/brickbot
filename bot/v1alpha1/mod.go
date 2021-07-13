@@ -271,4 +271,19 @@ type IIMProvider interface {
 	SendMarkdownToChat(chatID string, md string) error
 }
 
-type IProcessEventFunc func(e *Event, im IIMProvider) error
+// IPlugin is the interface all plugins must implement.
+type IPlugin interface {
+	Setup() error
+	ProcessEvent(e *Event, im IIMProvider) error
+	Teardown() error
+}
+
+// IPluginConfigFactoryFunc is signature for the plugin's exported
+// "BrickbotPluginConfigFactory" function.
+//
+// You should return the zero value of your desired config struct.
+type IPluginConfigFactoryFunc = func() interface{}
+
+// IPluginFactoryFunc is signature for the plugin's exported
+// "BrickbotPluginFactory" function.
+type IPluginFactoryFunc = func(config interface{}) (IPlugin, error)

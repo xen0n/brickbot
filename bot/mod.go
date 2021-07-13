@@ -5,109 +5,73 @@ package bot
 import (
 	"errors"
 	"plugin"
+	"reflect"
 
-	"github.com/rs/zerolog/log"
+	"github.com/BurntSushi/toml"
+
 	"github.com/xen0n/brickbot/bot/v1alpha1"
-	"github.com/xen0n/brickbot/im"
 )
 
-// IBot is the interface that all bots implement.
-type IBot interface {
-	ProcessEvent(e *v1alpha1.Event, im im.IProvider) error
+type LoadedPlugin struct {
+	configFactoryFn v1alpha1.IPluginConfigFactoryFunc
+	factoryFn       v1alpha1.IPluginFactoryFunc
 }
 
-func InitWithPlugin(pluginPath string) (IBot, error) {
+func LoadPlugin(pluginPath string) (*LoadedPlugin, error) {
 	pl, err := plugin.Open(pluginPath)
 	if err != nil {
 		return nil, err
 	}
 
-	apiVersionSym, err := pl.Lookup("PluginAPIVersion")
+	apiVersionSym, err := pl.Lookup("BrickbotPluginAPIVersion")
 	if err != nil {
 		return nil, err
 	}
 
-	apiVersion, ok := apiVersionSym.(int)
+	apiVersion, ok := apiVersionSym.(*int)
 	if !ok {
-		return nil, err
+		return nil, errors.New("wrong type of BrickbotPluginAPIVersion symbol")
 	}
 
-	if apiVersion != v1alpha1.PluginAPIVersion {
+	if apiVersion == nil || *apiVersion != v1alpha1.PluginAPIVersion {
 		return nil, errors.New("plugin API version mismatch")
 	}
 
-	processEventFnSym, err := pl.Lookup("ProcessEvent")
+	pluginConfigFactoryFnSym, err := pl.Lookup("BrickbotPluginConfigFactory")
 	if err != nil {
 		return nil, err
 	}
 
-	processEventFn, ok := processEventFnSym.(v1alpha1.IProcessEventFunc)
+	pluginConfigFactoryFn, ok := pluginConfigFactoryFnSym.(v1alpha1.IPluginConfigFactoryFunc)
 	if !ok {
-		return nil, errors.New("wrong type of ProcessEvent symbol")
+		return nil, errors.New("wrong type of BrickbotPluginConfigFactory symbol")
 	}
 
-	return &pluginHostV1alpha1{
-		processEventFn: processEventFn,
+	pluginFactoryFnSym, err := pl.Lookup("BrickbotPluginFactory")
+	if err != nil {
+		return nil, err
+	}
+
+	pluginFactoryFn, ok := pluginFactoryFnSym.(v1alpha1.IPluginFactoryFunc)
+	if !ok {
+		return nil, errors.New("wrong type of BrickbotPluginFactory symbol")
+	}
+
+	return &LoadedPlugin{
+		configFactoryFn: pluginConfigFactoryFn,
+		factoryFn:       pluginFactoryFn,
 	}, nil
 }
 
-type pluginHostV1alpha1 struct {
-	processEventFn v1alpha1.IProcessEventFunc
-}
+func (p *LoadedPlugin) InitWithConfigTOML(configPath string) (v1alpha1.IPlugin, error) {
+	// get concrete type for unmarshaling
+	configTypeTemplate := p.configFactoryFn()
+	rv := reflect.New(reflect.TypeOf(configTypeTemplate))
 
-var _ IBot = (*pluginHostV1alpha1)(nil)
-
-func (h *pluginHostV1alpha1) ProcessEvent(
-	e *v1alpha1.Event,
-	im im.IProvider,
-) error {
-	return h.processEventFn(e, makeIMProviderShim(im))
-}
-
-type imProviderShim struct {
-	inner im.IProvider
-}
-
-var _ v1alpha1.IIMProvider = (*imProviderShim)(nil)
-
-func makeIMProviderShim(p im.IProvider) *imProviderShim {
-	return &imProviderShim{
-		inner: p,
+	_, err := toml.DecodeFile(configPath, rv.Interface())
+	if err != nil {
+		return nil, err
 	}
-}
 
-func (p *imProviderShim) SendTextToPerson(userID string, text string) error {
-	log.Debug().
-		Str("userID", userID).
-		Str("text", text).
-		Msg("SendTextToPerson stub")
-
-	return nil
-}
-
-func (p *imProviderShim) SendTextToChat(chatID string, text string) error {
-	log.Debug().
-		Str("chatID", chatID).
-		Str("text", text).
-		Msg("SendTextToChat stub")
-
-	return nil
-}
-
-func (p *imProviderShim) SendMarkdownToPerson(userID string, md string) error {
-	log.Debug().
-		Str("userID", userID).
-		Str("md", md).
-		Msg("SendMarkdownToPerson stub")
-
-	return nil
-}
-
-func (p *imProviderShim) SendMarkdownToChat(chatID string, md string) error {
-	log.Debug().
-		Str("chatID", chatID).
-		Str("md", md).
-		Msg("SendMarkdownToChat stub")
-
-	return nil
+	return p.factoryFn(rv.Elem().Interface())
 }
