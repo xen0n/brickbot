@@ -87,6 +87,21 @@ func (p *plugin) ProcessEvent(e *v1alpha1.Event, im v1alpha1.IIMProvider) error 
 		if err != nil {
 			return err
 		}
+
+	case v1alpha1.EventTypePRReady:
+		ee, _ := e.PRReady()
+		err := im.SendTextToChat(
+			p.teamChatID,
+			fmt.Sprintf(
+				"%s 的 %s 可以看了\n\n%s",
+				ee.Actor.UserName,
+				ee.PR.URL,
+				ee.PR.Title,
+			),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
