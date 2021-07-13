@@ -3,16 +3,21 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 
+	"github.com/xen0n/brickbot/bot"
 	"github.com/xen0n/brickbot/forge"
 	forgeGH "github.com/xen0n/brickbot/forge/github"
 	forgeGL "github.com/xen0n/brickbot/forge/gitlab"
@@ -41,14 +46,70 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = runServer(&conf)
+	botPlugin, err := bot.LoadPlugin(conf.Bot.PluginPath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to serve")
+		log.Fatal().Err(err).Msg("failed to load bot plugin")
 		os.Exit(1)
 	}
+
+	bot, err := botPlugin.InitWithConfigTOML(conf.Bot.ConfigPath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to construct bot plugin")
+		os.Exit(2)
+	}
+
+	err = bot.Setup()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to setup bot plugin")
+		os.Exit(2)
+	}
+
+	srv, err := makeServer(&conf)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize server")
+		os.Exit(1)
+	}
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT)
+
+	exitcodeChan := make(chan int)
+
+	go func() {
+		// only SIGINT for now
+		// gracefully quit on catching that signal
+		<-signalChan
+
+		log.Info().Msg("caught SIGINT")
+
+		// TODO: timeout for graceful quit
+		err := srv.Shutdown(context.Background())
+		if err != nil {
+			log.Error().Err(err).Msg("error occurred during shutdown")
+			exitcodeChan <- 10
+			return
+		}
+
+		// shutdown successful
+		exitcodeChan <- 0
+	}()
+
+	err = srv.ListenAndServe()
+	if err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal().Err(err).Msg("failed to serve")
+			os.Exit(1)
+		}
+
+		// server closed, do nothing
+	}
+
+	// wait for shutdown to complete
+	exitcode := <-exitcodeChan
+	os.Exit(exitcode)
 }
 
-func runServer(conf *config) error {
+func makeServer(conf *config) (*http.Server, error) {
 	// IM integration.
 	var wecom im.IProvider
 	if conf.WeCom.Enabled {
@@ -59,7 +120,7 @@ func runServer(conf *config) error {
 		)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to initialize WeCom integration")
-			return err
+			return nil, err
 		}
 
 		wecom = p
@@ -81,7 +142,7 @@ func runServer(conf *config) error {
 			fh, err := forgeGH.New(conf.GitHub.Secret)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to initialize GitHub integration")
-				return err
+				return nil, err
 			}
 
 			mux.HandleFunc("/github", makeForgeHookHandler(fh, wecom))
@@ -91,14 +152,17 @@ func runServer(conf *config) error {
 			fh, err := forgeGL.New(conf.GitLab.Secret)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to initialize GitLab integration")
-				return err
+				return nil, err
 			}
 
 			mux.HandleFunc("/gitlab", makeForgeHookHandler(fh, wecom))
 		}
 	}
 
-	return http.ListenAndServe(conf.Server.ListenAddr, mux)
+	return &http.Server{
+		Addr:    conf.Server.ListenAddr,
+		Handler: mux,
+	}, nil
 }
 
 func dummyHealthzHandler(rw http.ResponseWriter, r *http.Request) {

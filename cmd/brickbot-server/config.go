@@ -11,6 +11,7 @@ type config struct {
 	GitHub githubConfig `toml:"github"`
 	GitLab gitlabConfig `toml:"gitlab"`
 	WeCom  wecomConfig  `toml:"wecom"`
+	Bot    botConfig    `toml:"bot"`
 }
 
 type serverConfig struct {
@@ -35,6 +36,11 @@ type wecomConfig struct {
 	CorpID     string `toml:"corpid"`
 	CorpSecret string `toml:"corpsecret"`
 	AgentID    int64  `toml:"agentid"`
+}
+
+type botConfig struct {
+	PluginPath string `toml:"plugin_path"`
+	ConfigPath string `toml:"config_path"`
 }
 
 func parseConfig(path string) (config, error) {
