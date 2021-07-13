@@ -96,6 +96,7 @@ func botModelFromPRContainingPayload(x interface{}) v1alpha1.PR {
 				UserName: x.PullRequest.User.Login,
 			},
 			State: issueStateFromPRState(x.PullRequest.State, x.PullRequest.Merged),
+			URL:   x.PullRequest.HTMLURL,
 		}
 
 	case *github.PullRequestReviewPayload:
@@ -108,6 +109,7 @@ func botModelFromPRContainingPayload(x interface{}) v1alpha1.PR {
 				UserName: x.PullRequest.User.Login,
 			},
 			State: issueStateFromPRState(x.PullRequest.State, false), // no "merged" field
+			URL:   x.PullRequest.HTMLURL,
 		}
 
 	default:

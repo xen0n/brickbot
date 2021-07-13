@@ -61,11 +61,9 @@ func (p *plugin) ProcessEvent(e *v1alpha1.Event, im v1alpha1.IIMProvider) error 
 		err := im.SendTextToChat(
 			p.teamChatID,
 			fmt.Sprintf(
-				"%s 提交了 %s/%s #%d\n\n%s",
+				"%s 提交了 %s\n\n%s",
 				ee.Actor.UserName,
-				ee.PR.Repo.User.UserName,
-				ee.PR.Repo.RepoName,
-				ee.PR.Number,
+				ee.PR.URL,
 				ee.PR.Title,
 			),
 		)
@@ -83,6 +81,21 @@ func (p *plugin) ProcessEvent(e *v1alpha1.Event, im v1alpha1.IIMProvider) error 
 				ee.PR.Repo.User.UserName,
 				ee.PR.Repo.RepoName,
 				ee.PR.Number,
+				ee.PR.Title,
+			),
+		)
+		if err != nil {
+			return err
+		}
+
+	case v1alpha1.EventTypePRReady:
+		ee, _ := e.PRReady()
+		err := im.SendTextToChat(
+			p.teamChatID,
+			fmt.Sprintf(
+				"%s 的 %s 可以看了\n\n%s",
+				ee.Actor.UserName,
+				ee.PR.URL,
 				ee.PR.Title,
 			),
 		)

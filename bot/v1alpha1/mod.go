@@ -67,6 +67,7 @@ type PR struct {
 	Title  string
 	Author ForgeUser
 	State  IssueState
+	URL    string
 }
 
 type CIRun struct {
