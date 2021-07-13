@@ -25,7 +25,9 @@ corpid = "foofoofoofoo"
 corpsecret = "barbarbarbar"
 # Your bot's AgentID.
 agentid = 100001
-# ChatID for your team to receive notifications.
-#
-# NOTE: You need to create the appchat yourself.
-chatid = "devteambrickbot"
+
+[bot]
+# Path to your bot plugin library.
+plugin_path = "./my_plugin.so"
+# Path to your bot plugin's own config file.
+config_path = "./my_plugin.toml"
