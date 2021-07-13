@@ -61,11 +61,9 @@ func (p *plugin) ProcessEvent(e *v1alpha1.Event, im v1alpha1.IIMProvider) error 
 		err := im.SendTextToChat(
 			p.teamChatID,
 			fmt.Sprintf(
-				"%s 提交了 %s/%s #%d\n\n%s",
+				"%s 提交了 %s\n\n%s",
 				ee.Actor.UserName,
-				ee.PR.Repo.User.UserName,
-				ee.PR.Repo.RepoName,
-				ee.PR.Number,
+				ee.PR.URL,
 				ee.PR.Title,
 			),
 		)
