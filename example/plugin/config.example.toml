@@ -1,0 +1,4 @@
+# ChatID for your team to receive notifications.
+#
+# NOTE: You need to create the appchat yourself.
+team_chatid = "devteambrickbot"
