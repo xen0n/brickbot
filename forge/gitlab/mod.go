@@ -7,22 +7,12 @@ import (
 
 	"github.com/go-playground/webhooks/v6/gitlab"
 
+	"github.com/xen0n/brickbot/bot/v1alpha1"
 	"github.com/xen0n/brickbot/forge"
 )
 
-type gitlabEvent struct {
-	inner interface{}
-}
-
-var _ forge.IEvent = (*gitlabEvent)(nil)
-
-// Raw returns the raw payload from forges.
-//
-// TODO: This is for debugging purposes, and is very likely to be removed
-// before initial release.
-func (e *gitlabEvent) Raw() interface{} {
-	return e.inner
-}
+//nolint:deadcode,unused,varcheck // pending rework
+const forgeType = "gitlab"
 
 type gitlabForge struct {
 	hook *gitlab.Webhook
@@ -45,7 +35,7 @@ func New(secret string) (forge.IForgeHook, error) {
 }
 
 // HookRequest hooks an incoming webhook request to trigger actions.
-func (f *gitlabForge) HookRequest(req *http.Request) (*forge.HookResult, error) {
+func (f *gitlabForge) HookRequest(req *http.Request) (*v1alpha1.Event, error) {
 	payload, err := f.hook.Parse(
 		req,
 		// XXX This is everything for now, I don't know exactly what GitLab is
@@ -66,10 +56,7 @@ func (f *gitlabForge) HookRequest(req *http.Request) (*forge.HookResult, error) 
 		return nil, err
 	}
 
-	return &forge.HookResult{
-		IsInteresting: true,
-		Event: &gitlabEvent{
-			inner: payload,
-		},
-	}, nil
+	// TODO
+	_ = payload
+	return nil, nil
 }

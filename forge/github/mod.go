@@ -7,22 +7,11 @@ import (
 
 	"github.com/go-playground/webhooks/v6/github"
 
+	"github.com/xen0n/brickbot/bot/v1alpha1"
 	"github.com/xen0n/brickbot/forge"
 )
 
-type githubEvent struct {
-	inner interface{}
-}
-
-var _ forge.IEvent = (*githubEvent)(nil)
-
-// Raw returns the raw payload from forges.
-//
-// TODO: This is for debugging purposes, and is very likely to be removed
-// before initial release.
-func (e *githubEvent) Raw() interface{} {
-	return e.inner
-}
+const forgeType = "github"
 
 type githubForge struct {
 	hook *github.Webhook
@@ -45,7 +34,7 @@ func New(secret string) (forge.IForgeHook, error) {
 }
 
 // HookRequest hooks an incoming webhook request to trigger actions.
-func (f *githubForge) HookRequest(req *http.Request) (*forge.HookResult, error) {
+func (f *githubForge) HookRequest(req *http.Request) (*v1alpha1.Event, error) {
 	payload, err := f.hook.Parse(
 		req,
 		// XXX This is everything for now, I don't know exactly what GitHub is
@@ -95,10 +84,37 @@ func (f *githubForge) HookRequest(req *http.Request) (*forge.HookResult, error) 
 		return nil, err
 	}
 
-	return &forge.HookResult{
-		IsInteresting: true,
-		Event: &githubEvent{
-			inner: payload,
-		},
-	}, nil
+	switch p := payload.(type) {
+	case github.PingPayload:
+		params := intoWebhookInstalledParams(&p)
+		return params.IntoEvent(), nil
+
+	case github.PullRequestPayload:
+		switch p.Action {
+		case "opened", "reopened":
+			params := intoPROpenedParams(&p)
+			return params.IntoEvent(), nil
+
+		case "closed":
+			if p.PullRequest.Merged {
+				params := intoPRMergedParams(&p)
+				return params.IntoEvent(), nil
+			}
+
+			params := intoPRClosedParams(&p)
+			return params.IntoEvent(), nil
+
+		case "ready_for_review":
+			params := intoPRReadyParams(&p)
+			return params.IntoEvent(), nil
+
+		default:
+			// Currently no bot event for this action
+			return nil, nil
+		}
+
+	}
+
+	// Currently not handled
+	return nil, nil
 }

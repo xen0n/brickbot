@@ -35,7 +35,6 @@ type wecomConfig struct {
 	CorpID     string `toml:"corpid"`
 	CorpSecret string `toml:"corpsecret"`
 	AgentID    int64  `toml:"agentid"`
-	ChatID     string `toml:"chatid"`
 }
 
 func parseConfig(path string) (config, error) {

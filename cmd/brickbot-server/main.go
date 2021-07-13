@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -55,7 +56,6 @@ func runServer(conf *config) error {
 			conf.WeCom.CorpID,
 			conf.WeCom.CorpSecret,
 			conf.WeCom.AgentID,
-			conf.WeCom.ChatID,
 		)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to initialize WeCom integration")
@@ -112,7 +112,7 @@ func makeForgeHookHandler(
 ) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		// Invoke the forge-specific logic.
-		hookResult, err := fh.HookRequest(r)
+		botEvent, err := fh.HookRequest(r)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to process incoming webhook event")
 
@@ -121,18 +121,15 @@ func makeForgeHookHandler(
 			return
 		}
 
-		if hookResult.IsInteresting {
-			// Only process interesting events.
-			// For now, directly report to IM for debugging.
-			if imProvider != nil {
-				err := imProvider.SendTeamMessage(hookResult.Event)
-				if err != nil {
-					// This error is not related to webhook request itself, so
-					// don't return failure status code.
-					log.Warn().Err(err).Msg("failed to send team message")
-				}
-			}
+		if botEvent == nil {
+			// Event is boring, do nothing.
+			rw.WriteHeader(http.StatusNoContent)
+			return
 		}
+
+		log.Debug().Str("event", fmt.Sprintf("%+v", botEvent)).Msg("parsed incoming event")
+
+		// TODO: bot logic
 
 		// Most webhooks ignore the response body, but might retry in case of
 		// failed deliveries, so send 204.

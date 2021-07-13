@@ -25,7 +25,3 @@ corpid = "foofoofoofoo"
 corpsecret = "barbarbarbar"
 # Your bot's AgentID.
 agentid = 100001
-# ChatID for your team to receive notifications.
-#
-# NOTE: You need to create the appchat yourself.
-chatid = "devteambrickbot"
