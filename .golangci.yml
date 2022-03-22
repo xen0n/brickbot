@@ -1,4 +1,5 @@
 run:
+  go: 1.18
   modules-download-mode: readonly
 
 linters:
