@@ -3,7 +3,7 @@ module github.com/xen0n/brickbot
 go 1.18
 
 require (
-	github.com/BurntSushi/toml v1.2.0
+	github.com/BurntSushi/toml v1.2.1
 	github.com/go-playground/webhooks/v6 v6.0.1
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/zerolog v1.28.0
