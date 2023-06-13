@@ -28,8 +28,11 @@ import (
 )
 
 func main() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	//nolint:reassign // Overwriting external global vars is the expected usage pattern
+	{
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	}
 
 	var configPath string
 	flag.StringVar(&configPath, "c", "", "path to config file")
