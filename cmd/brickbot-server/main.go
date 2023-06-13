@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -161,8 +162,9 @@ func makeServer(conf *config, bot v1alpha1.IPlugin) (*http.Server, error) {
 	}
 
 	return &http.Server{
-		Addr:    conf.Server.ListenAddr,
-		Handler: mux,
+		Addr:        conf.Server.ListenAddr,
+		Handler:     mux,
+		ReadTimeout: 1 * time.Minute,
 	}, nil
 }
 
