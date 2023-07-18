@@ -171,7 +171,7 @@ func makeServer(conf *config, bot v1alpha1.IPlugin) (*http.Server, error) {
 	}, nil
 }
 
-func dummyHealthzHandler(rw http.ResponseWriter, r *http.Request) {
+func dummyHealthzHandler(rw http.ResponseWriter, _ *http.Request) {
 	// Does nothing for now, just report healthy.
 	rw.WriteHeader(http.StatusOK)
 }
