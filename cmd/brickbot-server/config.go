@@ -7,7 +7,7 @@ import (
 )
 
 type config struct {
-	Server serverConfig
+	Server serverConfig `toml:"server"`
 	GitHub githubConfig `toml:"github"`
 	GitLab gitlabConfig `toml:"gitlab"`
 	WeCom  wecomConfig  `toml:"wecom"`
@@ -22,17 +22,17 @@ type serverConfig struct {
 }
 
 type githubConfig struct {
-	Enabled bool
-	Secret  string
+	Enabled bool   `toml:"enabled"`
+	Secret  string `toml:"secret"`
 }
 
 type gitlabConfig struct {
-	Enabled bool
-	Secret  string
+	Enabled bool   `toml:"enabled"`
+	Secret  string `toml:"secret"`
 }
 
 type wecomConfig struct {
-	Enabled    bool
+	Enabled    bool   `toml:"enabled"`
 	CorpID     string `toml:"corpid"`
 	CorpSecret string `toml:"corpsecret"`
 	AgentID    int64  `toml:"agentid"`

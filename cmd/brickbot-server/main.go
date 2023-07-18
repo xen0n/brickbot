@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -27,8 +28,11 @@ import (
 )
 
 func main() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	//nolint:reassign // Overwriting external global vars is the expected usage pattern
+	{
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	}
 
 	var configPath string
 	flag.StringVar(&configPath, "c", "", "path to config file")
@@ -161,12 +165,13 @@ func makeServer(conf *config, bot v1alpha1.IPlugin) (*http.Server, error) {
 	}
 
 	return &http.Server{
-		Addr:    conf.Server.ListenAddr,
-		Handler: mux,
+		Addr:        conf.Server.ListenAddr,
+		Handler:     mux,
+		ReadTimeout: 1 * time.Minute,
 	}, nil
 }
 
-func dummyHealthzHandler(rw http.ResponseWriter, r *http.Request) {
+func dummyHealthzHandler(rw http.ResponseWriter, _ *http.Request) {
 	// Does nothing for now, just report healthy.
 	rw.WriteHeader(http.StatusOK)
 }
